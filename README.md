@@ -85,7 +85,7 @@ Golden: giang vien phat file **60 phut cuoi**. `data/golden_eval.json` **gitigno
 5. Khong nop `.env` / `ZEP_API_KEY` / `data/golden_eval.json`. Khong copy `memory_reference.py` roi doi ten.
 6. Neu tranh diem cong: `reports/golden_benchmark.json` va/hoac UI demo.
 
-## Demo ngan cho giang vien
+## Demo them
 
 ```bash
 # Demo 3 chien luoc short-term
@@ -153,7 +153,7 @@ docker compose run --rm app python -m src.forget --user-id minh-lab17
 │   ├── heartbeat.py
 │   └── forget.py
 ├── tests/
-└── instructor/
+└── scripts/quickstart.sh
 ```
 
 ## Muc tieu benchmark

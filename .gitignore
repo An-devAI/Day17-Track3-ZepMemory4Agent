@@ -3,15 +3,6 @@
 __pycache__/
 .pytest_cache/
 *.pyc
-reports/benchmark.json
-reports/benchmark.md
-reports/benchmark_*.json
-reports/benchmark_*.md
-reports/golden*
-reports/comparison.md
-reports/*.html
-reports/*.log
 data/golden_eval.json
 data/golden*.json
 !data/golden_eval.example.json
-instructor/golden*.json

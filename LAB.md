@@ -631,13 +631,12 @@ Hai huong (UI va report dep) **khong cong chong**. Lay max.
 
 **Pass:** diem nen **>= 56/80** **va** 9/11 **va** du 3 artefact cot loi **va** khong commit secret. Golden/UI khong bat buoc de pass.
 
-### 5.5. Quy trinh cham giang vien
+### 5.5. Cong thuc diem
 
 ```bash
 docker compose run --rm app pytest -q
 docker compose run --rm app python -m src.evaluate --impl student --reuse-seeded
-# Sau khi hoc vien nop golden_benchmark.json, re-run bang file instructor:
-# copy instructor/golden_eval.json -> data/golden_eval.json
+# Golden: copy file giang vien phat vao data/golden_eval.json, roi:
 docker compose run --rm app python -m src.evaluate --impl student --reuse-seeded --golden
 ```
 
