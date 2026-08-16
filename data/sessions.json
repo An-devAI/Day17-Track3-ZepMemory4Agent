@@ -1,0 +1,257 @@
+{
+  "dataset_id": "vinuni-lab17-zep-v1",
+  "description": "Cross-session memory benchmark with deterministic evidence ground truth.",
+  "users": [
+    {
+      "user_id": "minh-lab17",
+      "first_name": "Minh",
+      "last_name": "Nguyen",
+      "email": "minh.lab17@example.invalid",
+      "sessions": [
+        {
+          "stage": 1,
+          "thread_id": "minh-s1",
+          "ready_probe": {"query": "ORCHID-27", "must_contain": "ORCHID-27"},
+          "messages": [
+            {
+              "created_at": "2026-08-01T09:00:00Z",
+              "role": "user",
+              "name": "Minh Nguyen",
+              "content": "Ten du an ca nhan cua toi la ORCHID-27. Toi thich Python va khong thich Java. Khi giai thich code, hay dung vi du ngan."
+            },
+            {
+              "created_at": "2026-08-01T09:00:20Z",
+              "role": "assistant",
+              "name": "Lab Assistant",
+              "content": "Da hieu: demo ca nhan ORCHID-27, uu tien Python, tranh Java, vi du ngan."
+            },
+            {
+              "created_at": "2026-08-01T09:02:00Z",
+              "role": "user",
+              "name": "Minh Nguyen",
+              "content": "Toi dang hoc async/await va hay nham coroutine voi Task. Neu sau nay gap chu de nay, hay giai thich bang timeline."
+            },
+            {
+              "created_at": "2026-08-01T09:02:20Z",
+              "role": "assistant",
+              "name": "Lab Assistant",
+              "content": "Toi se uu tien timeline khi giai thich coroutine va Task."
+            },
+            {
+              "created_at": "2026-08-01T09:04:00Z",
+              "role": "user",
+              "name": "Minh Nguyen",
+              "content": "TODO: hoan thanh benchmark report truoc thu Sau luc 16:00. Day la open loop LAB-REPORT-1600."
+            }
+          ]
+        },
+        {
+          "stage": 2,
+          "thread_id": "minh-s2",
+          "ready_probe": {"query": "ASYNC-FIX-20", "must_contain": "ASYNC-FIX-20"},
+          "messages": [
+            {
+              "created_at": "2026-08-03T10:00:00Z",
+              "role": "user",
+              "name": "Minh Nguyen",
+              "content": "Hom nay toi debug async HTTP. Toi da thu tang timeout len 60s nhung van fail."
+            },
+            {
+              "created_at": "2026-08-03T10:01:00Z",
+              "role": "assistant",
+              "name": "Lab Assistant",
+              "content": "Hay kiem tra connection pool, lifecycle cua client va concurrency."
+            },
+            {
+              "created_at": "2026-08-03T10:03:00Z",
+              "role": "user",
+              "name": "Minh Nguyen",
+              "content": "Cach hieu qua la reuse aiohttp ClientSession va dat concurrency=20. Reflection: loi chinh la connection churn, khong phai timeout threshold. Ma su co ASYNC-FIX-20."
+            },
+            {
+              "created_at": "2026-08-03T10:03:20Z",
+              "role": "assistant",
+              "name": "Lab Assistant",
+              "content": "Da ghi nhan trajectory: increase timeout khong hieu qua; ClientSession + concurrency=20 giai quyet connection churn."
+            }
+          ]
+        },
+        {
+          "stage": 3,
+          "thread_id": "minh-s3",
+          "ready_probe": {"query": "BLUEBIRD-42", "must_contain": "BLUEBIRD-42"},
+          "messages": [
+            {
+              "created_at": "2026-08-05T08:00:00Z",
+              "role": "user",
+              "name": "Minh Nguyen",
+              "content": "Cap nhat moi: voi du an cong ty BLUEBIRD-42, backend bat buoc dung TypeScript voi NestJS; khong dung Python cho backend du an nay. Preference Python van dung cho demo ca nhan ORCHID-27."
+            },
+            {
+              "created_at": "2026-08-05T08:00:20Z",
+              "role": "assistant",
+              "name": "Lab Assistant",
+              "content": "Da tach scope: BLUEBIRD-42 dung TypeScript/NestJS; ORCHID-27 van uu tien Python."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "user_id": "lan-lab17",
+      "first_name": "Lan",
+      "last_name": "Tran",
+      "email": "lan.lab17@example.invalid",
+      "sessions": [
+        {
+          "stage": 1,
+          "thread_id": "lan-s1",
+          "ready_probe": {"query": "LOTUS-88", "must_contain": "LOTUS-88"},
+          "messages": [
+            {
+              "created_at": "2026-08-01T11:00:00Z",
+              "role": "user",
+              "name": "Lan Tran",
+              "content": "Toi la Lan. Du an cua toi la LOTUS-88. Toi uu tien Java va Spring Boot, va khong dung Python trong vi du backend."
+            },
+            {
+              "created_at": "2026-08-01T11:00:20Z",
+              "role": "assistant",
+              "name": "Lab Assistant",
+              "content": "Da hieu: LOTUS-88, Java + Spring Boot cho backend examples."
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "evaluations": [
+    {
+      "id": "E01",
+      "after_stage": 1,
+      "user_id": "minh-lab17",
+      "thread_id": "minh-s1",
+      "expected_layer": "short_term",
+      "query": "Ten du an ca nhan toi vua nhac la gi?",
+      "must_contain_all": ["ORCHID-27"],
+      "description": "Recent in-thread recall."
+    },
+    {
+      "id": "E02",
+      "after_stage": 2,
+      "user_id": "minh-lab17",
+      "thread_id": "eval-e02",
+      "expected_layer": "long_term",
+      "query": "Voi demo ca nhan cua Minh, ngon ngu uu tien la gi?",
+      "must_contain_all": ["Python"],
+      "description": "Cross-session preference recall."
+    },
+    {
+      "id": "E03",
+      "after_stage": 2,
+      "user_id": "minh-lab17",
+      "thread_id": "eval-e03",
+      "expected_layer": "long_term",
+      "query": "Minh con open loop hay deadline nao chua hoan thanh?",
+      "must_contain_all": ["benchmark report", "16:00"],
+      "description": "Durable task/open-loop recall."
+    },
+    {
+      "id": "E04",
+      "after_stage": 2,
+      "user_id": "minh-lab17",
+      "thread_id": "minh-s2",
+      "expected_layer": "episodic",
+      "query": "Lan truoc Minh fix async HTTP timeout bang cach nao?",
+      "must_contain_all": ["ClientSession", "concurrency=20", "ASYNC-FIX-20"],
+      "description": "Past trajectory recall."
+    },
+    {
+      "id": "E05",
+      "after_stage": 2,
+      "user_id": "minh-lab17",
+      "thread_id": "minh-s2",
+      "expected_layer": "episodic",
+      "query": "Reflection cua su co async la gi, tang timeout co phai root fix khong?",
+      "must_contain_all": ["connection churn", "timeout threshold"],
+      "description": "Episode reflection recall."
+    },
+    {
+      "id": "E06",
+      "after_stage": 1,
+      "user_id": "minh-lab17",
+      "thread_id": "minh-s1",
+      "expected_layer": "semantic",
+      "query": "Quy tac retry POST payment la gi?",
+      "must_contain_all": ["Idempotency-Key", "max-3-retries", "exponential-backoff"],
+      "description": "Shared domain knowledge retrieval."
+    },
+    {
+      "id": "E07",
+      "after_stage": 2,
+      "user_id": "minh-lab17",
+      "thread_id": "eval-e07",
+      "expected_layer": "mixed",
+      "query": "Hay chon huong dan code retry payment phu hop voi preference ca nhan cua Minh.",
+      "must_contain_all": ["Python", "Idempotency-Key"],
+      "description": "Combine personal long-term + shared semantic memory."
+    },
+    {
+      "id": "E08",
+      "after_stage": 3,
+      "user_id": "minh-lab17",
+      "thread_id": "eval-e08",
+      "expected_layer": "long_term",
+      "query": "Backend cua BLUEBIRD-42 bat buoc dung stack gi?",
+      "must_contain_all": ["BLUEBIRD-42", "TypeScript", "NestJS"],
+      "description": "Scoped preference update / recency."
+    },
+    {
+      "id": "E09",
+      "after_stage": 1,
+      "user_id": "lan-lab17",
+      "thread_id": "eval-e09",
+      "expected_layer": "long_term",
+      "query": "Lan uu tien stack backend nao cho LOTUS-88?",
+      "must_contain_all": ["LOTUS-88", "Java", "Spring Boot"],
+      "must_not_contain": ["ORCHID-27"],
+      "description": "User isolation: Lan must not receive Minh memory."
+    },
+    {
+      "id": "E10",
+      "after_stage": 1,
+      "user_id": "minh-lab17",
+      "thread_id": "local-short-term",
+      "expected_layer": "short_term",
+      "query": "Deadline review cu la khi nao?",
+      "must_contain_all": ["REVIEW-DEADLINE-1600", "Friday", "16:00"],
+      "description": "Compaction must preserve an old constraint in durable notes.",
+      "fixture_messages": [
+        {"role":"user","content":"Constraint: REVIEW-DEADLINE-1600 - project review is Friday at 16:00 and must not be forgotten."},
+        {"role":"assistant","content":"Acknowledged review constraint."},
+        {"role":"user","content":"Filler turn 1 about UI spacing."},
+        {"role":"assistant","content":"Filler answer 1."},
+        {"role":"user","content":"Filler turn 2 about naming."},
+        {"role":"assistant","content":"Filler answer 2."},
+        {"role":"user","content":"Filler turn 3 about logging."},
+        {"role":"assistant","content":"Filler answer 3."},
+        {"role":"user","content":"Filler turn 4 about tests."},
+        {"role":"assistant","content":"Filler answer 4."},
+        {"role":"user","content":"Filler turn 5 about docs."},
+        {"role":"assistant","content":"Filler answer 5."},
+        {"role":"user","content":"Filler turn 6 about lint."},
+        {"role":"assistant","content":"Filler answer 6."}
+      ]
+    },
+    {
+      "id": "E11",
+      "after_stage": 2,
+      "user_id": "minh-lab17",
+      "thread_id": "minh-s2",
+      "expected_layer": "semantic",
+      "query": "Theo incident playbook, truoc khi tang timeout can kiem tra gi?",
+      "must_contain_all": ["connection pooling", "CONN-POOL-FIRST"],
+      "description": "Second semantic case to make semantic coverage visible."
+    }
+  ]
+}

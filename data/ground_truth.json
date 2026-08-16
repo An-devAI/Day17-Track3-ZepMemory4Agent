@@ -1,0 +1,213 @@
+{
+  "dataset_id": "vinuni-lab17-zep-v1",
+  "scoring": "case passes when all must_contain_all markers are present and no must_not_contain marker is present in retrieved evidence",
+  "evaluations": [
+    {
+      "id": "E01",
+      "after_stage": 1,
+      "user_id": "minh-lab17",
+      "thread_id": "minh-s1",
+      "expected_layer": "short_term",
+      "query": "Ten du an ca nhan toi vua nhac la gi?",
+      "must_contain_all": [
+        "ORCHID-27"
+      ],
+      "description": "Recent in-thread recall."
+    },
+    {
+      "id": "E02",
+      "after_stage": 2,
+      "user_id": "minh-lab17",
+      "thread_id": "eval-e02",
+      "expected_layer": "long_term",
+      "query": "Voi demo ca nhan cua Minh, ngon ngu uu tien la gi?",
+      "must_contain_all": [
+        "Python"
+      ],
+      "description": "Cross-session preference recall."
+    },
+    {
+      "id": "E03",
+      "after_stage": 2,
+      "user_id": "minh-lab17",
+      "thread_id": "eval-e03",
+      "expected_layer": "long_term",
+      "query": "Minh con open loop hay deadline nao chua hoan thanh?",
+      "must_contain_all": [
+        "benchmark report",
+        "16:00"
+      ],
+      "description": "Durable task/open-loop recall."
+    },
+    {
+      "id": "E04",
+      "after_stage": 2,
+      "user_id": "minh-lab17",
+      "thread_id": "minh-s2",
+      "expected_layer": "episodic",
+      "query": "Lan truoc Minh fix async HTTP timeout bang cach nao?",
+      "must_contain_all": [
+        "ClientSession",
+        "concurrency=20",
+        "ASYNC-FIX-20"
+      ],
+      "description": "Past trajectory recall."
+    },
+    {
+      "id": "E05",
+      "after_stage": 2,
+      "user_id": "minh-lab17",
+      "thread_id": "minh-s2",
+      "expected_layer": "episodic",
+      "query": "Reflection cua su co async la gi, tang timeout co phai root fix khong?",
+      "must_contain_all": [
+        "connection churn",
+        "timeout threshold"
+      ],
+      "description": "Episode reflection recall."
+    },
+    {
+      "id": "E06",
+      "after_stage": 1,
+      "user_id": "minh-lab17",
+      "thread_id": "minh-s1",
+      "expected_layer": "semantic",
+      "query": "Quy tac retry POST payment la gi?",
+      "must_contain_all": [
+        "Idempotency-Key",
+        "max-3-retries",
+        "exponential-backoff"
+      ],
+      "description": "Shared domain knowledge retrieval."
+    },
+    {
+      "id": "E07",
+      "after_stage": 2,
+      "user_id": "minh-lab17",
+      "thread_id": "eval-e07",
+      "expected_layer": "mixed",
+      "query": "Hay chon huong dan code retry payment phu hop voi preference ca nhan cua Minh.",
+      "must_contain_all": [
+        "Python",
+        "Idempotency-Key"
+      ],
+      "description": "Combine personal long-term + shared semantic memory."
+    },
+    {
+      "id": "E08",
+      "after_stage": 3,
+      "user_id": "minh-lab17",
+      "thread_id": "eval-e08",
+      "expected_layer": "long_term",
+      "query": "Backend cua BLUEBIRD-42 bat buoc dung stack gi?",
+      "must_contain_all": [
+        "BLUEBIRD-42",
+        "TypeScript",
+        "NestJS"
+      ],
+      "description": "Scoped preference update / recency."
+    },
+    {
+      "id": "E09",
+      "after_stage": 1,
+      "user_id": "lan-lab17",
+      "thread_id": "eval-e09",
+      "expected_layer": "long_term",
+      "query": "Lan uu tien stack backend nao cho LOTUS-88?",
+      "must_contain_all": [
+        "LOTUS-88",
+        "Java",
+        "Spring Boot"
+      ],
+      "must_not_contain": [
+        "ORCHID-27"
+      ],
+      "description": "User isolation: Lan must not receive Minh memory."
+    },
+    {
+      "id": "E10",
+      "after_stage": 1,
+      "user_id": "minh-lab17",
+      "thread_id": "local-short-term",
+      "expected_layer": "short_term",
+      "query": "Deadline review cu la khi nao?",
+      "must_contain_all": [
+        "REVIEW-DEADLINE-1600",
+        "Friday",
+        "16:00"
+      ],
+      "description": "Compaction must preserve an old constraint in durable notes.",
+      "fixture_messages": [
+        {
+          "role": "user",
+          "content": "Constraint: REVIEW-DEADLINE-1600 - project review is Friday at 16:00 and must not be forgotten."
+        },
+        {
+          "role": "assistant",
+          "content": "Acknowledged review constraint."
+        },
+        {
+          "role": "user",
+          "content": "Filler turn 1 about UI spacing."
+        },
+        {
+          "role": "assistant",
+          "content": "Filler answer 1."
+        },
+        {
+          "role": "user",
+          "content": "Filler turn 2 about naming."
+        },
+        {
+          "role": "assistant",
+          "content": "Filler answer 2."
+        },
+        {
+          "role": "user",
+          "content": "Filler turn 3 about logging."
+        },
+        {
+          "role": "assistant",
+          "content": "Filler answer 3."
+        },
+        {
+          "role": "user",
+          "content": "Filler turn 4 about tests."
+        },
+        {
+          "role": "assistant",
+          "content": "Filler answer 4."
+        },
+        {
+          "role": "user",
+          "content": "Filler turn 5 about docs."
+        },
+        {
+          "role": "assistant",
+          "content": "Filler answer 5."
+        },
+        {
+          "role": "user",
+          "content": "Filler turn 6 about lint."
+        },
+        {
+          "role": "assistant",
+          "content": "Filler answer 6."
+        }
+      ]
+    },
+    {
+      "id": "E11",
+      "after_stage": 2,
+      "user_id": "minh-lab17",
+      "thread_id": "minh-s2",
+      "expected_layer": "semantic",
+      "query": "Theo incident playbook, truoc khi tang timeout can kiem tra gi?",
+      "must_contain_all": [
+        "connection pooling",
+        "CONN-POOL-FIRST"
+      ],
+      "description": "Second semantic case to make semantic coverage visible."
+    }
+  ]
+}

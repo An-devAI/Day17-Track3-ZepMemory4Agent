@@ -1,0 +1,14 @@
+{
+  "minh-lab17": {
+    "memory_opt_in": true,
+    "allowed_memory_types": ["preference", "fact", "open_loop", "episode"],
+    "purpose": "VinUni synthetic memory systems lab",
+    "expires_after_days": 30
+  },
+  "lan-lab17": {
+    "memory_opt_in": true,
+    "allowed_memory_types": ["preference", "fact", "episode"],
+    "purpose": "VinUni synthetic memory systems lab",
+    "expires_after_days": 30
+  }
+}

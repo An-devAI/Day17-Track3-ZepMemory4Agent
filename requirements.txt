@@ -1,0 +1,20 @@
+# Zep V3 SDK. Official LangGraph docs (2026) require zep-cloud >=3.23.0.
+zep-cloud>=3.23.0,<4
+langgraph>=1.2.5,<2
+
+# Gemini LLM for the demo UI chat reply (gemini-2.5-flash-lite by default).
+google-genai>=1.0,<2
+
+# Local baseline stores
+redis>=6,<7
+qdrant-client>=1.15,<2
+scikit-learn>=1.7,<2
+
+# Lab utilities
+python-dotenv>=1.0,<2
+pydantic>=2.10,<3
+rich>=13.9,<15
+typer>=0.15,<1
+pytest>=8.3,<9
+requests>=2.32,<3
+streamlit>=1.48,<2
