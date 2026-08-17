@@ -27,15 +27,18 @@ def load_knowledge() -> list[dict[str, Any]]:
 
 
 GOLDEN_PATH = ROOT / "data" / "golden_eval.json"
+GOLDEN_FALLBACK_PATH = ROOT / "data" / "golden_eval_v3.json"
 
 
 def load_golden_evaluations() -> list[dict[str, Any]]:
-    if not GOLDEN_PATH.exists():
+    golden_path = GOLDEN_PATH if GOLDEN_PATH.exists() else GOLDEN_FALLBACK_PATH
+    if not golden_path.exists():
         raise FileNotFoundError(
-            "Golden set not released yet. Expected data/golden_eval.json. "
+            "Golden set not released yet. Expected data/golden_eval.json "
+            "or data/golden_eval_v3.json. "
             "Instructor copies this file 60 minutes before lab end."
         )
-    payload = load_json(GOLDEN_PATH)
+    payload = load_json(golden_path)
     cases = payload.get("evaluations") or []
     if len(cases) < 20:
         raise ValueError(f"Golden set must contain 20 cases, found {len(cases)}")

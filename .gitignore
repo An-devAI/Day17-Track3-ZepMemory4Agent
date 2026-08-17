@@ -4,5 +4,6 @@ __pycache__/
 .pytest_cache/
 *.pyc
 data/golden_eval.json
+data/golden_eval_v3.json
 data/golden*.json
 !data/golden_eval.example.json

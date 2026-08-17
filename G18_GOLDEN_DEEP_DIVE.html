@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Golden G18 — Deep Dive</title>
+  <style>
+    :root{--ink:#172033;--muted:#5c687d;--bg:#f5f8fc;--card:#fff;--line:#dce4ef;--blue:#2563eb;--green:#059669;--orange:#d97706;--purple:#7c3aed;--shadow:0 12px 32px #17203312}
+    *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.65 system-ui,-apple-system,Segoe UI,sans-serif}
+    .hero{padding:70px 7vw 58px;color:#fff;background:linear-gradient(135deg,#312e81,#2563eb 60%,#0891b2)}
+    .hero h1{max-width:950px;margin:8px 0 12px;font-size:clamp(2.3rem,5vw,4.5rem);line-height:1.04;letter-spacing:-.045em}.hero p{max-width:800px;color:#e1ecff;font-size:1.1rem}
+    .wrap{width:min(1100px,90vw);margin:auto} nav{position:sticky;top:0;z-index:4;padding:11px 5vw;overflow:auto;white-space:nowrap;background:#fffffff0;border-bottom:1px solid var(--line);backdrop-filter:blur(10px)} nav a{margin-right:18px;color:var(--ink);text-decoration:none;font-size:.92rem}nav a:hover{color:var(--blue)} main{padding:40px 0 80px}section{scroll-margin-top:65px;margin-bottom:48px}h2{margin:0 0 10px;font-size:2rem;letter-spacing:-.025em}h3{margin-top:26px}.lead{max-width:850px;color:var(--muted);font-size:1.08rem}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px;margin:20px 0}.card{padding:21px;background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow)}.card h3{margin:0 0 6px}.card p{margin:0;color:var(--muted)}.pill{display:inline-block;padding:4px 10px;border-radius:99px;color:#fff;font-size:.78rem;font-weight:700}.pass{background:var(--green)}.episode{border-left:5px solid var(--orange)}.semantic{border-left:5px solid var(--purple)}.query{padding:20px;color:#e7efff;background:#111827;border-radius:13px;font:14px/1.6 ui-monospace,SFMono-Regular,Consolas,monospace}.query mark{padding:2px 4px;color:#fff;background:#166534;border-radius:4px}.flow{display:flex;align-items:stretch;gap:10px;flex-wrap:wrap;margin:22px 0}.flow div{position:relative;flex:1 1 145px;padding:17px 12px;text-align:center;background:#fff;border:1px solid var(--line);border-radius:13px}.flow div:not(:last-child)::after{content:'→';position:absolute;right:-17px;top:25px;color:var(--blue);font-size:22px;font-weight:700}@media(max-width:650px){.flow div:not(:last-child)::after{display:none}}table{width:100%;border-collapse:collapse;margin:18px 0;background:#fff;border:1px solid var(--line)}th,td{padding:11px 13px;text-align:left;vertical-align:top;border-bottom:1px solid var(--line)}th{background:#eaf1fb;color:#30415d}tr:last-child td{border-bottom:0}.callout{margin:20px 0;padding:17px 20px;background:#fff8e8;border-left:5px solid var(--orange);border-radius:10px}.callout strong{color:#92400e}pre{overflow:auto;padding:17px;color:#e5efff;background:#111827;border-radius:12px;font:13px/1.55 ui-monospace,SFMono-Regular,Consolas,monospace}code{padding:2px 5px;color:#123d91;background:#e8f0ff;border-radius:4px}pre code{padding:0;color:inherit;background:none}.metric{font-size:2rem;font-weight:800;line-height:1.1}.small{color:var(--muted);font-size:.9rem}.bar{height:13px;margin:10px 0 15px;overflow:hidden;background:#e5ebf3;border-radius:99px}.bar span{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,var(--blue),#22d3ee)}.check{list-style:none;padding:0}.check li{margin:8px 0}.check li::before{content:'✓';display:inline-block;width:25px;color:var(--green);font-weight:800}.two{display:grid;grid-template-columns:1fr 1fr;gap:20px}@media(max-width:740px){.two{grid-template-columns:1fr}}details{margin:12px 0;padding:13px 16px;background:#fff;border:1px solid var(--line);border-radius:10px}summary{cursor:pointer;font-weight:700}footer{padding:34px 7vw;color:#dbeafe;background:#172554}
+  </style>
+</head>
+<body>
+  <header class="hero"><div class="wrap">
+    <div><span class="pill pass">G18 · PASS</span> <span class="pill" style="background:#f59e0b">GOLDEN V3</span></div>
+    <h1>Một query, hai loại memory</h1>
+    <p>Deep dive golden test G18: truy tìm root cause của sự cố async HTTP bằng episodic memory, đồng thời lấy context-budget policy từ semantic memory.</p>
+  </div></header>
+  <nav><a href="#case">Case</a><a href="#reasoning">Suy luận layer</a><a href="#run">Lần chạy thực tế</a><a href="#budget">Budget</a><a href="#why">Vì sao PASS</a><a href="#lessons">Bài học</a></nav>
+
+  <main class="wrap">
+    <section id="case">
+      <h2>1. G18 đang hỏi điều gì?</h2>
+      <p class="lead">G18 không phải một câu hỏi đơn giản. Nó yêu cầu agent ghép evidence từ một trải nghiệm cá nhân trong quá khứ với một tài liệu domain dùng chung.</p>
+      <div class="query">Viet slide hau kiem: root cause async lan truoc la gi, va khi cat context cho agent thi ty le budget bon tang nho trong lab la bao nhieu? Can reflection that va ma ngan sach, khong doan.</div>
+      <table><thead><tr><th>Thuộc tính</th><th>Giá trị</th></tr></thead><tbody>
+        <tr><td>Case / user / thread</td><td><b>G18</b> · <code>minh-lab17</code> · <code>eval-g18-v3</code></td></tr>
+        <tr><td>Loại</td><td>Mixed retrieval</td></tr>
+        <tr><td>Layer được yêu cầu</td><td><b>Episodic + Semantic</b></td></tr>
+        <tr><td>Ground truth</td><td><code>connection churn</code> và <code>BUDGET-10-4-3-3</code></td></tr>
+      </tbody></table>
+      <div class="callout"><strong>Điểm quan trọng:</strong> câu hỏi có hai vế với hai phạm vi khác nhau. “Root cause async lần trước” là history của Minh; “budget bốn tầng nhớ” là kiến thức thiết kế của lab. Nếu chỉ gọi một graph, agent sẽ thiếu một nửa câu trả lời.</div>
+    </section>
+
+    <section id="reasoning">
+      <h2>2. Vì sao router chọn Episodic + Semantic?</h2>
+      <div class="flow"><div><b>“root cause”</b><br><span class="small">outcome/reflection quá khứ</span></div><div><b>Episodic</b><br><span class="small">user-scoped graph</span></div><div><b>“budget bốn tầng”</b><br><span class="small">policy/domain knowledge</span></div><div><b>Semantic</b><br><span class="small">standalone graph</span></div></div>
+      <div class="two">
+        <article class="card episode"><h3>Nhánh 1 — Episodic</h3><p>Search bằng <code>user_id=minh-lab17</code>, vì câu hỏi hỏi lại trajectory của Minh. Ta cần “đã thử gì”, “cái gì work” và reflection.</p><pre><code>graph.search(
+  user_id="minh-lab17",
+  query=query,
+  scope="episodes"
+)</code></pre></article>
+        <article class="card semantic"><h3>Nhánh 2 — Semantic</h3><p>Search bằng graph dùng chung, vì budget là quy tắc của lab chứ không phải preference của Minh.</p><pre><code>graph.search(
+  graph_id="vinuni-lab17-domain-kb",
+  query=query,
+  scope="episodes"
+)</code></pre></article>
+      </div>
+    </section>
+
+    <section id="run">
+      <h2>3. Lần chạy G18 thực tế</h2>
+      <div class="grid">
+        <div class="card"><div class="metric">PASS</div><p>Không thiếu marker, không có forbidden evidence.</p></div>
+        <div class="card"><div class="metric">1,496.6 ms</div><p>Latency của một lần chạy riêng G18.</p></div>
+        <div class="card"><div class="metric">500 tok</div><p>Context sau khi assemble và trim.</p></div>
+        <div class="card"><div class="metric">11.5%</div><p>Token reduction so với full source context.</p></div>
+      </div>
+      <h3>Evidence episodic được lấy ra</h3>
+      <div class="card episode"><p><code>Cach hieu qua la reuse aiohttp ClientSession va dat concurrency=20. Reflection: loi chinh la connection churn, khong phai timeout threshold. Ma su co ASYNC-FIX-20.</code></p><p class="small">Diễn giải: tăng timeout lên không giải quyết root cause; vấn đề thật là connection churn. Fix là reuse client session và giới hạn concurrency.</p></div>
+      <h3>Evidence semantic được lấy ra</h3>
+      <div class="card semantic"><p><code>Reserve bounded context for memory. This lab uses short-term 10 percent, long-term 4 percent, episodic 3 percent, semantic 3 percent; ... Marker: BUDGET-10-4-3-3.</code></p><p class="small">Diễn giải: memory không được chiếm toàn bộ context; mỗi layer có một phần ngân sách riêng và layer thấp ưu tiên sẽ bị trim trước.</p></div>
+      <div class="callout"><strong>Evaluator không chấm câu trả lời văn hoa.</strong> Nó kiểm tra đúng hai marker: chuỗi <code>connection churn</code> phải xuất hiện và chuỗi <code>BUDGET-10-4-3-3</code> phải xuất hiện. Hai marker này là bằng chứng máy có thể kiểm chứng.</div>
+    </section>
+
+    <section id="budget">
+      <h2>4. Context budget đã hoạt động thế nào?</h2>
+      <p>Lab đặt <code>LAB_CONTEXT_TOKENS=8000</code>. Memory budget dùng 20% context, chia theo tỷ lệ 10/4/3/3.</p>
+      <table><thead><tr><th>Layer</th><th>Giới hạn lý thuyết</th><th>G18 raw</th><th>G18 used</th><th>Vai trò</th></tr></thead><tbody>
+        <tr><td>Short-term</td><td>800 tokens</td><td>0</td><td>0</td><td>Không được yêu cầu trong G18</td></tr>
+        <tr><td>Long-term</td><td>320 tokens</td><td>0</td><td>0</td><td>Không được yêu cầu trong G18</td></tr>
+        <tr><td><b>Episodic</b></td><td>240 tokens</td><td>725</td><td>244</td><td>Giữ reflection và outcome ở phần đầu</td></tr>
+        <tr><td><b>Semantic</b></td><td>240 tokens</td><td>509</td><td>244</td><td>Ưu tiên budget marker để không mất evidence</td></tr>
+      </tbody></table>
+      <pre><code>layers = {
+  "short_term": "",
+  "long_term": "",
+  "episodic": retrieve_episodic(...),
+  "semantic": retrieve_semantic(...),
+}
+
+merged, breakdown = budget.assemble(layers)</code></pre>
+      <p>Raw retrieval dài hơn budget. <code>ContextBudgetManager</code> giữ phần đầu của từng layer vì renderer đã đặt các evidence salient ở đầu. Đây là lý do focused search cho incident và budget marker quan trọng.</p>
+    </section>
+
+    <section id="why">
+      <h2>5. Vì sao G18 PASS?</h2>
+      <div class="grid">
+        <div class="card"><span class="pill pass">1</span><h3>Đúng phạm vi user</h3><p>Episodic search dùng <code>user_id</code>, nên reflection của Minh không bị trộn với Lan.</p></div>
+        <div class="card"><span class="pill pass">2</span><h3>Đúng phạm vi domain</h3><p>Semantic search dùng <code>graph_id</code>, nên policy budget được lấy từ knowledge graph dùng chung.</p></div>
+        <div class="card"><span class="pill pass">3</span><h3>Giữ literal markers</h3><p>Dùng <code>scope="episodes"</code> để giữ marker thay vì chỉ lấy fact đã trích xuất.</p></div>
+        <div class="card"><span class="pill pass">4</span><h3>Assemble có budget</h3><p>Hai layer được gộp theo priority và giới hạn token, thay vì nhét toàn bộ transcript vào prompt.</p></div>
+      </div>
+      <details><summary>Nếu chỉ dùng Episodic thì sao?</summary><p>Ta có thể trả lời root cause và thấy <code>connection churn</code>, nhưng không biết tỷ lệ budget 10/4/3/3. Case FAIL vì thiếu <code>BUDGET-10-4-3-3</code>.</p></details>
+      <details><summary>Nếu chỉ dùng Semantic thì sao?</summary><p>Ta có thể lấy policy budget, nhưng semantic graph không biết trải nghiệm riêng của Minh trong lần debug async trước. Case FAIL vì thiếu reflection/root cause.</p></details>
+      <details><summary>Nếu đưa toàn bộ source context vào model?</summary><p>Có thể giữ marker, nhưng tốn token, tăng nhiễu và làm mất kiểm soát namespace. Memory system tốt phải chọn evidence trước khi model nhìn thấy context.</p></details>
+    </section>
+
+    <section id="lessons">
+      <h2>6. Bài học rút ra từ G18</h2>
+      <ol><li><b>Memory layer được chọn theo ý nghĩa câu hỏi:</b> history cá nhân là episodic; policy dùng chung là semantic.</li><li><b>Retrieval đúng chưa đủ:</b> evidence đúng nhưng nằm ở cuối output vẫn có thể bị budget trim.</li><li><b>Marker là hợp đồng đánh giá:</b> <code>connection churn</code> và <code>BUDGET-10-4-3-3</code> biến retrieval thành thứ có thể test tự động.</li><li><b>Mixed case phản ánh agent thật:</b> câu hỏi production thường cần ghép user context, trải nghiệm cũ và domain rules.</li><li><b>Token reduction phải đọc cùng hit rate:</b> giảm token mà không có evidence thì không phải tối ưu, mà là bỏ sót dữ liệu.</li></ol>
+      <div class="callout"><strong>Tóm tắt một câu:</strong> G18 PASS vì agent biết rằng “nguyên nhân lần trước” và “quy tắc hiện tại” sống ở hai memory khác nhau, rồi ghép chúng trong một context có ngân sách.</div>
+      <h3>Checklist khi demo trên UI</h3>
+      <ul class="check"><li>Chọn <code>G18</code> trong dropdown Golden V3.</li><li>Hiển thị expected layer: <code>mixed</code>.</li><li>Bấm Run retrieval.</li><li>Mở Episodic evidence và chỉ ra <code>connection churn</code>.</li><li>Mở Semantic evidence và chỉ ra <code>BUDGET-10-4-3-3</code>.</li><li>Chỉ ra budget metrics: episodic 240, semantic 240.</li><li>Chat tiếp một câu hỏi về root cause hoặc budget để chứng minh history vẫn giữ.</li></ul>
+    </section>
+  </main>
+  <footer><div class="wrap"><b>Golden G18 Deep Dive</b><br>Lab 17 — Multi-Memory Agent với Zep · Kết quả chạy thực tế: PASS</div></footer>
+</body>
+</html>

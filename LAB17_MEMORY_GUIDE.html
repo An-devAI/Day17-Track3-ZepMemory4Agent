@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lab 17 — Multi-Memory Agent với Zep</title>
+  <style>
+    :root {
+      --ink:#172033; --muted:#5b667a; --paper:#f7f9fc; --card:#fff;
+      --line:#dce3ee; --blue:#2563eb; --green:#059669; --orange:#d97706;
+      --purple:#7c3aed; --red:#dc2626; --shadow:0 12px 35px #17203312;
+    }
+    * { box-sizing:border-box; }
+    html { scroll-behavior:smooth; }
+    body { margin:0; color:var(--ink); background:var(--paper); font:16px/1.65 system-ui,-apple-system,Segoe UI,sans-serif; }
+    .hero { padding:72px 7vw 64px; color:white; background:linear-gradient(135deg,#172554,#2563eb 55%,#0891b2); }
+    .hero h1 { max-width:980px; margin:0 0 14px; font-size:clamp(2.2rem,5vw,4.6rem); line-height:1.05; letter-spacing:-.04em; }
+    .hero p { max-width:760px; margin:0; color:#e0ecff; font-size:1.12rem; }
+    .wrap { width:min(1120px,90vw); margin:auto; }
+    nav { position:sticky; top:0; z-index:5; padding:10px 5vw; overflow:auto; white-space:nowrap; background:#ffffffed; border-bottom:1px solid var(--line); backdrop-filter:blur(10px); }
+    nav a { color:var(--ink); text-decoration:none; margin-right:18px; font-size:.92rem; }
+    nav a:hover { color:var(--blue); }
+    main { padding:42px 0 90px; }
+    section { scroll-margin-top:65px; margin:0 0 46px; }
+    h2 { margin:0 0 12px; font-size:2rem; letter-spacing:-.025em; }
+    h3 { margin-top:28px; }
+    .lead { color:var(--muted); font-size:1.08rem; max-width:850px; }
+    .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:16px; margin:20px 0; }
+    .card { padding:21px; background:var(--card); border:1px solid var(--line); border-radius:16px; box-shadow:var(--shadow); }
+    .card h3 { margin:0 0 7px; font-size:1.12rem; }
+    .card p { margin:0; color:var(--muted); }
+    .tag { display:inline-block; padding:3px 10px; margin-bottom:10px; border-radius:999px; color:white; font-size:.78rem; font-weight:700; }
+    .blue { background:var(--blue); } .green { background:var(--green); } .orange { background:var(--orange); } .purple { background:var(--purple); }
+    .flow { display:flex; align-items:stretch; gap:10px; margin:22px 0; flex-wrap:wrap; }
+    .flow > div { flex:1 1 145px; position:relative; padding:18px 14px; text-align:center; background:white; border:1px solid var(--line); border-radius:14px; }
+    .flow > div:not(:last-child)::after { content:'→'; position:absolute; right:-17px; top:28px; color:var(--blue); font-size:22px; font-weight:700; }
+    @media(max-width:650px){ .flow > div:not(:last-child)::after { display:none; } }
+    .layer { border-left:5px solid var(--blue); }
+    .layer.greenline { border-color:var(--green); } .layer.orangeline { border-color:var(--orange); } .layer.purpleline { border-color:var(--purple); }
+    pre { overflow:auto; padding:17px; color:#e5efff; background:#111827; border-radius:12px; font:13px/1.55 ui-monospace,SFMono-Regular,Consolas,monospace; }
+    code { padding:2px 5px; color:#0f3e91; background:#e8f0ff; border-radius:4px; }
+    pre code { padding:0; color:inherit; background:none; }
+    .callout { margin:20px 0; padding:18px 20px; border-left:5px solid var(--orange); background:#fff8eb; border-radius:10px; }
+    .callout strong { color:#92400e; }
+    table { width:100%; border-collapse:collapse; margin:18px 0; background:white; border:1px solid var(--line); border-radius:12px; overflow:hidden; }
+    th,td { padding:11px 13px; text-align:left; vertical-align:top; border-bottom:1px solid var(--line); }
+    th { color:#30415d; background:#edf3fb; }
+    tr:last-child td { border-bottom:0; }
+    .meter { height:12px; margin:10px 0 15px; overflow:hidden; background:#e7edf5; border-radius:99px; }
+    .meter span { display:block; height:100%; background:linear-gradient(90deg,var(--green),#34d399); border-radius:inherit; }
+    .check { list-style:none; padding:0; }
+    .check li { margin:8px 0; }
+    .check li::before { content:'✓'; display:inline-block; width:25px; color:var(--green); font-weight:800; }
+    details { margin:12px 0; padding:13px 16px; background:white; border:1px solid var(--line); border-radius:10px; }
+    summary { cursor:pointer; font-weight:700; }
+    .small { color:var(--muted); font-size:.9rem; }
+    footer { padding:35px 7vw; color:#dbeafe; background:#172554; }
+    .two { display:grid; grid-template-columns:1fr 1fr; gap:22px; }
+    @media(max-width:760px){ .two { grid-template-columns:1fr; } }
+  </style>
+</head>
+<body>
+  <header class="hero">
+    <div class="wrap">
+      <p>LAB 17 · MEMORY SYSTEMS FOR AGENTS</p>
+      <h1>Hiểu sâu Multi-Memory Agent với Zep</h1>
+      <p>Trang này giải thích vì sao agent cần nhiều loại memory, mỗi layer giải quyết câu hỏi nào, dữ liệu đi qua hệ thống ra sao và benchmark đánh giá retrieval như thế nào.</p>
+    </div>
+  </header>
+
+  <nav>
+    <a href="#big-picture">Bức tranh lớn</a>
+    <a href="#layers">4 memory layer</a>
+    <a href="#zep">Zep V3</a>
+    <a href="#short-term">Short-term</a>
+    <a href="#budget">Budget</a>
+    <a href="#benchmark">Benchmark</a>
+    <a href="#privacy">Privacy</a>
+    <a href="#practice">Thực hành</a>
+  </nav>
+
+  <main class="wrap">
+    <section id="big-picture">
+      <h2>1. Bức tranh lớn</h2>
+      <p class="lead">Một chatbot chỉ nhìn thấy prompt hiện tại. Một memory agent phải quyết định thông tin nào cần lấy lại, lấy từ đâu, giữ bao nhiêu và đưa vào context theo thứ tự nào.</p>
+      <div class="flow">
+        <div><b>Người dùng</b><br><span class="small">query mới</span></div>
+        <div><b>Router</b><br><span class="small">xác định layer</span></div>
+        <div><b>Retrieve</b><br><span class="small">tìm evidence</span></div>
+        <div><b>Assemble</b><br><span class="small">trim theo budget</span></div>
+        <div><b>Agent</b><br><span class="small">trả lời có căn cứ</span></div>
+      </div>
+      <pre><code>query → route → retrieve từng layer → budget/priority → merged context → answer</code></pre>
+      <div class="callout"><strong>Ý tưởng cốt lõi:</strong> Memory không phải một “kho chat khổng lồ”. Memory là một pipeline chọn lọc evidence. Retrieval sai thì model có thể nói rất trôi chảy nhưng vẫn sai sự thật.</div>
+    </section>
+
+    <section id="layers">
+      <h2>2. Bốn loại memory</h2>
+      <p class="lead">Hãy phân loại theo câu hỏi mà người dùng đang hỏi, không chỉ theo nơi lưu dữ liệu.</p>
+      <div class="grid">
+        <article class="card layer"><span class="tag blue">SHORT-TERM</span><h3>Working / current conversation</h3><p>Dùng cho “vừa nói gì?”, đại từ “nó” đang chỉ gì, hoặc các turn gần nhất. Nhanh nhưng bị giới hạn context.</p><p><b>Ví dụ:</b> E01, E10.</p></article>
+        <article class="card layer greenline"><span class="tag green">LONG-TERM</span><h3>Facts và preferences bền vững</h3><p>Dùng cho “tôi thích gì?”, “project đang dùng stack nào?”, open loop và deadline qua nhiều session.</p><p><b>Ví dụ:</b> E02, E03, E08, E09.</p></article>
+        <article class="card layer orangeline"><span class="tag orange">EPISODIC</span><h3>Trajectory và kinh nghiệm</h3><p>Dùng cho “lần trước đã thử gì?”, “cách fix nào hiệu quả?”, outcome và reflection có provenance.</p><p><b>Ví dụ:</b> E04, E05.</p></article>
+        <article class="card layer purpleline"><span class="tag purple">SEMANTIC</span><h3>Domain knowledge dùng chung</h3><p>Dùng cho policy, playbook, tài liệu và quy tắc không thuộc riêng user nào.</p><p><b>Ví dụ:</b> E06, E11.</p></article>
+      </div>
+      <table>
+        <thead><tr><th>Câu hỏi</th><th>Layer phù hợp</th><th>Namespace</th></tr></thead>
+        <tbody>
+          <tr><td>“Deadline review vừa nói là khi nào?”</td><td>Short-term</td><td>Local session</td></tr>
+          <tr><td>“Minh thích ngôn ngữ nào?”</td><td>Long-term</td><td>Theo user</td></tr>
+          <tr><td>“Lần trước fix timeout ra sao?”</td><td>Episodic</td><td>Theo user</td></tr>
+          <tr><td>“Rule retry payment là gì?”</td><td>Semantic</td><td>Graph dùng chung</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="zep">
+      <h2>3. Zep Cloud V3: user graph và semantic graph</h2>
+      <p class="lead">Lab dùng Zep Cloud V3. Trong V3, conversation được gọi là <code>thread</code>. Có hai không gian dữ liệu quan trọng.</p>
+      <div class="two">
+        <div class="card"><h3>User-scoped graph</h3><p>Chứa memory của một user: facts, preferences, episodes và context liên quan. Long-term/episodic phải tìm bằng <code>user_id</code> để tránh data leak.</p><pre><code>user.add
+thread.create(user_id=...)
+thread.add_messages(...)
+thread.get_user_context(thread_id=...)</code></pre></div>
+        <div class="card"><h3>Standalone semantic graph</h3><p>Chứa knowledge dùng chung như payment policy hoặc incident playbook. Semantic retrieval phải tìm bằng <code>graph_id</code>, không phải user.</p><pre><code>graph.search(
+  graph_id="vinuni-lab17-domain-kb",
+  scope="episodes"
+)</code></pre></div>
+      </div>
+      <div class="callout"><strong>Vì sao semantic dùng scope=episodes?</strong> Trong lab, raw document episode giữ literal marker như <code>PAYMENT-RULE-3</code> và <code>CONN-POOL-FIRST</code>. Scope <code>auto</code> có thể trả fact đã trích xuất nhưng làm mất marker mà evaluator cần kiểm tra.</div>
+    </section>
+
+    <section id="short-term">
+      <h2>4. Short-term memory và compaction</h2>
+      <div class="grid">
+        <div class="card"><h3>Buffer</h3><p>Giữ toàn bộ messages. Đơn giản và chính xác, nhưng token tăng tuyến tính.</p></div>
+        <div class="card"><h3>Summary</h3><p>Nén các turn cũ thành summary. Tiết kiệm token nhưng có nguy cơ mất chi tiết.</p></div>
+        <div class="card"><h3>Sliding window</h3><p>Giữ summary/durable notes và K turn gần nhất. Đây là chiến lược mặc định của lab.</p></div>
+      </div>
+      <pre><code>old turns ──compaction──&gt; summary + durable notes
+                                  + recent K turns</code></pre>
+      <p>Compaction tốt không phải là tóm tắt văn hoa. Nó phải ưu tiên:</p>
+      <ul class="check">
+        <li>state hiện tại</li><li>decision đã chốt</li><li>TODO/open loop</li><li>constraint và deadline</li>
+      </ul>
+      <p>Trong E10, thông tin <code>REVIEW-DEADLINE-1600</code>, ngày Friday và thời gian 16:00 phải sống sót sau khi raw transcript bị loại khỏi cửa sổ gần nhất.</p>
+    </section>
+
+    <section id="retrieval">
+      <h2>5. Đọc bốn hàm student</h2>
+      <p>Mỗi hàm có một trách nhiệm hẹp. Tách retrieval theo layer giúp dễ debug và đo lường.</p>
+      <div class="grid">
+        <div class="card"><h3>Long-term</h3><p>Prime thread bằng query để Zep biết relevance, sau đó lấy Context Block bằng <code>thread.get_user_context</code>. Trả về chuỗi <code>.context</code>, không trả object.</p></div>
+        <div class="card"><h3>Episodic</h3><p>Gọi <code>graph.search(user_id=..., scope="episodes")</code>. Render content và provenance; giữ các reflection marker.</p></div>
+        <div class="card"><h3>Semantic</h3><p>Gọi <code>graph.search(graph_id=..., scope="episodes")</code>; nếu SDK không hỗ trợ thì fallback sang <code>nodes</code>.</p></div>
+        <div class="card"><h3>Assemble</h3><p>Không nối chuỗi thủ công tùy tiện. Dùng <code>ContextBudgetManager.assemble(layers)</code> để áp dụng giới hạn và priority.</p></div>
+      </div>
+      <div class="callout"><strong>Giới hạn query:</strong> Zep graph search không nhận query quá 400 ký tự. Vì vậy mọi query trước khi search cần đi qua <code>cap_query(query)</code>.</div>
+    </section>
+
+    <section id="budget">
+      <h2>6. Context budget: ít nhưng đúng</h2>
+      <p class="lead">Với <code>LAB_CONTEXT_TOKENS=8000</code>, lab phân bổ 20% context memory theo tỉ lệ 10/4/3/3.</p>
+      <table>
+        <thead><tr><th>Priority</th><th>Layer</th><th>Tỷ lệ</th><th>Với 8000 tokens</th><th>Lý do</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>Short-term</td><td>10%</td><td>800</td><td>Giải quyết reference hiện tại</td></tr>
+          <tr><td>2</td><td>Long-term</td><td>4%</td><td>320</td><td>Facts/preferences bền vững</td></tr>
+          <tr><td>3</td><td>Episodic</td><td>3%</td><td>240</td><td>Trajectory liên quan</td></tr>
+          <tr><td>4</td><td>Semantic</td><td>3%</td><td>240</td><td>Rule/domain evidence</td></tr>
+        </tbody>
+      </table>
+      <pre><code>short_term → long_term → episodic → semantic
+     (giữ phần đầu của mỗi layer khi cần trim)</code></pre>
+      <p>Thứ tự này phản ánh nguyên tắc: context gần người dùng nhất và có tính hội thoại cao nhất được ưu tiên trước; knowledge chung chỉ được thêm khi còn budget.</p>
+    </section>
+
+    <section id="benchmark">
+      <h2>7. Benchmark: đánh giá evidence, không đánh giá văn phong</h2>
+      <p>Evaluator lấy từng case trong <code>data/sessions.json</code>, gọi retrieval, rồi kiểm tra:</p>
+      <ul class="check"><li>Tất cả marker trong <code>must_contain_all</code> có xuất hiện không?</li><li>Có marker bị cấm trong <code>must_not_contain</code> không?</li><li>Retrieval tốn bao nhiêu token và bao lâu?</li></ul>
+      <div class="card">
+        <h3>Kết quả hiện tại của repo</h3>
+        <p>Student: <b>11/11 PASS · hit rate 100%</b></p>
+        <div class="meter"><span style="width:100%"></span></div>
+        <p>No-memory baseline: <b>2/11 PASS · hit rate 18.18%</b></p>
+        <div class="meter"><span style="width:18.18%;background:#f59e0b"></span></div>
+        <p class="small">No-memory có token reduction cao vì gần như không trả evidence. Đây là ví dụ quan trọng: giảm token không đồng nghĩa với nhớ tốt.</p>
+      </div>
+      <table>
+        <thead><tr><th>Case</th><th>Kiến thức cần recall</th><th>Ý nghĩa</th></tr></thead>
+        <tbody>
+          <tr><td>E02</td><td>Python</td><td>Cross-session preference</td></tr>
+          <tr><td>E03</td><td>benchmark report, 16:00</td><td>Open loop/deadline</td></tr>
+          <tr><td>E08</td><td>BLUEBIRD-42, TypeScript, NestJS</td><td>Recency wins</td></tr>
+          <tr><td>E09</td><td>LOTUS-88, Java, Spring Boot; không có ORCHID-27</td><td>User isolation</td></tr>
+          <tr><td>E07</td><td>Python + Idempotency-Key</td><td>Mixed retrieval</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="recency">
+      <h2>8. Hai vấn đề khó: conflict và mixed context</h2>
+      <div class="two">
+        <div class="card"><h3>Recency wins — E08</h3><p>Khi user từng chọn backend cũ rồi cập nhật preference mới, không nên xóa lịch sử. Hãy giữ validity range/provenance, nhưng khi trả lời hiện tại phải ưu tiên fact mới: <b>TypeScript + NestJS</b> cho <b>BLUEBIRD-42</b>.</p></div>
+        <div class="card"><h3>Mixed retrieval — E07</h3><p>Một query có thể cần cả preference user và rule domain. Long-term cung cấp <b>Python</b>; semantic cung cấp <b>Idempotency-Key</b>. Không layer nào một mình đủ evidence.</p></div>
+      </div>
+      <details><summary>Tự hỏi: tại sao không đưa toàn bộ transcript vào prompt?</summary><p>Vì transcript chứa nhiễu, facts cũ, mâu thuẫn và nhiều token. Prompt dài hơn cũng làm model khó chú ý evidence quan trọng. Memory system phải làm công việc chọn lọc trước khi model trả lời.</p></details>
+    </section>
+
+    <section id="privacy">
+      <h2>9. Privacy và right-to-be-forgotten</h2>
+      <div class="flow">
+        <div><b>Consent</b><br><span class="small">opt-in trước ingestion</span></div>
+        <div><b>Minimize</b><br><span class="small">redact email/phone</span></div>
+        <div><b>Isolate</b><br><span class="small">user_id namespace</span></div>
+        <div><b>Forget</b><br><span class="small">xóa user + Redis keys</span></div>
+      </div>
+      <p>Semantic graph dùng chung không bị xóa khi quên một user, vì nó là domain knowledge không thuộc user đó. Ngược lại, user graph và Redis keys của user phải biến mất.</p>
+      <pre><code>python -m src.forget --user-id minh-lab17
+python -m src.forget --user-id minh-lab17 --verify-only
+# Zep user absent: True
+# Redis user keys remaining: 0</code></pre>
+    </section>
+
+    <section id="practice">
+      <h2>10. Lộ trình học và tự kiểm tra</h2>
+      <ol>
+        <li>Đọc <code>data/sessions.json</code> và tìm marker của E01–E11.</li>
+        <li>Chạy smoke, seed và short-term demo.</li>
+        <li>Hoàn thiện retrieval từng layer, kiểm tra bằng <code>--only-layer</code>.</li>
+        <li>Chạy full benchmark và so sánh no-memory.</li>
+        <li>Giải thích E08 recency, E09 isolation, E10 compaction, E07 mixed.</li>
+        <li>Chạy privacy drill sau khi đã lưu report.</li>
+        <li>Nếu có golden set, chỉ nhận bonus khi đạt 20/20.</li>
+      </ol>
+      <div class="card">
+        <h3>Bài tập suy nghĩ</h3>
+        <p>Nếu query là “Lần trước payment retry bị lỗi vì sao, và theo policy hiện tại nên retry thế nào?”, bạn sẽ route vào layer nào?</p>
+        <details><summary>Đáp án gợi ý</summary><p>Episodic để lấy nguyên nhân/outcome lần trước; semantic để lấy policy hiện tại. Nếu user còn có preference coding language thì thêm long-term. Cuối cùng assemble theo budget.</p></details>
+      </div>
+      <h3>Checklist hoàn thành</h3>
+      <ul class="check"><li>Student benchmark đạt ít nhất 9/11, hiện tại là 11/11.</li><li>Không leak memory giữa hai user.</li><li>Context được trim theo 10/4/3/3.</li><li>Report có evidence, latency và token reduction.</li><li>Privacy có delete và verify.</li><li>Không commit API key hoặc golden file.</li></ul>
+    </section>
+  </main>
+
+  <footer><div class="wrap"><b>Lab 17 — Multi-Memory Agent với Zep</b><br><span>Memory tốt không phải là nhớ mọi thứ. Memory tốt là lấy đúng thứ, đúng user, đúng thời điểm và đúng ngân sách context.</span></div></footer>
+</body>
+</html>

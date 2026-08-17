@@ -36,7 +36,7 @@ from src.config import settings
 from src.llm import gemini_available, generate_reply
 from src.memory_student import StudentMemory
 from src.short_term import ShortTermMemory
-from src.utils import GOLDEN_PATH, load_dataset, load_json
+from src.utils import GOLDEN_FALLBACK_PATH, GOLDEN_PATH, load_dataset, load_json
 from src.zep_common import get_zep_client
 
 LAYER_COLORS = {
@@ -48,28 +48,50 @@ LAYER_COLORS = {
 
 CSS = """
 <style>
-.block-container { padding-top: 2rem; max-width: 1200px; }
+.stApp { background: linear-gradient(180deg, #f7faff 0%, #f8fafc 42%, #eef4fb 100%); }
+.block-container { padding-top: 2.2rem; padding-bottom: 4rem; max-width: 1280px; }
+.stApp h1 { color:#172554; font-weight:800; letter-spacing:-.04em; }
+.stApp h2, .stApp h3 { color:#1e293b; letter-spacing:-.02em; }
+.stCaption { color:#64748b; }
+.lab-hero { padding:1.25rem 1.4rem; margin:.2rem 0 1.3rem; border:1px solid #dbeafe;
+    border-radius:20px; color:#e0f2fe; background:linear-gradient(135deg,#172554,#2563eb 65%,#0891b2);
+    box-shadow:0 16px 34px #1e3a8a22; }
+.lab-hero h1 { margin:0; color:white; font-size:2rem; }
+.lab-hero p { margin:.35rem 0 0; color:#dbeafe; }
 .lab-badge {
     display:inline-block; padding:2px 10px; border-radius:999px;
     color:#fff; font-size:0.75rem; font-weight:600; letter-spacing:.02em;
     margin-right:6px;
 }
 .lab-card {
-    border:1px solid rgba(128,128,128,.25); border-radius:12px;
-    padding:14px 16px; margin-bottom:12px; background:rgba(127,127,127,.06);
+    border:1px solid #dbe4f0; border-radius:18px;
+    padding:18px 20px; margin-bottom:16px; background:#ffffffd9;
+    box-shadow:0 10px 28px #1720330d;
 }
-.lab-kv { font-size:0.85rem; opacity:.85; }
+.lab-kv { font-size:0.86rem; color:#64748b; }
 .lab-kv b { opacity:1; }
-.stChatMessage { border-radius:12px; }
+.lab-marker { display:inline-block; padding:3px 9px; margin:8px 5px 0 0; border-radius:999px;
+    color:#1e3a8a; background:#dbeafe; font:600 .76rem ui-monospace,monospace; }
+.golden-marker { color:#92400e; background:#fef3c7; }
+.stButton > button { border:0; border-radius:12px; padding:.65rem 1rem; color:white;
+    background:linear-gradient(135deg,#2563eb,#4f46e5); font-weight:700;
+    box-shadow:0 7px 16px #2563eb30; transition:transform .15s,box-shadow .15s; }
+.stButton > button:hover { color:white; transform:translateY(-1px); box-shadow:0 10px 22px #2563eb42; }
+.stMetric { border:1px solid #dbe4f0; border-radius:14px; padding:10px 12px; background:#ffffffc7; }
+.stMetric label { color:#64748b; }
+.stExpander { border-color:#dbe4f0; border-radius:13px; background:#ffffffaa; }
+.stChatMessage { border:1px solid #dbe4f0; border-radius:15px; }
+section[data-testid="stSidebar"] { background:linear-gradient(180deg,#eef5ff,#f8fafc); border-right:1px solid #dbe4f0; }
 </style>
 """
 
 
 def load_cases() -> list[dict[str, Any]]:
     cases = list(load_dataset()["evaluations"])
-    if GOLDEN_PATH.exists():
+    golden_path = GOLDEN_PATH if GOLDEN_PATH.exists() else GOLDEN_FALLBACK_PATH
+    if golden_path.exists():
         try:
-            cases.extend(load_json(GOLDEN_PATH).get("evaluations") or [])
+            cases.extend(load_json(golden_path).get("evaluations") or [])
         except Exception:
             pass
     return cases
@@ -84,12 +106,16 @@ def layer_badge(layer: str) -> str:
     return f'<span class="lab-badge" style="background:{color}">{layer}</span>'
 
 
+def case_kind(case: dict[str, Any]) -> str:
+    return "GOLDEN" if str(case.get("id", "")).startswith("G") else "PRACTICE"
+
+
 def retrieve_for_case(
     memory: StudentMemory,
     case: dict[str, Any],
     extra_messages: list[dict[str, str]],
 ) -> dict[str, Any]:
-    """BONUS TODO: run student retrieval for the loaded case.
+    """Run student retrieval for the loaded case.
 
     Return a dict with keys:
       - "merged_context": str  (StudentMemory.assemble_context output)
@@ -107,15 +133,64 @@ def retrieve_for_case(
       * Keep user_id and thread_id from the loaded case.
       * Finish with memory.assemble_context(layers).
     """
-    _ = (memory, case, extra_messages, settings, ShortTermMemory)
-    raise NotImplementedError("BONUS TODO: run student retrieval for the loaded case")
+    dataset = load_dataset()
+    expected = case.get("expected_layer", "long_term")
+    wanted = case.get("retrieve_layers")
+    if wanted is None:
+        wanted = ["long_term", "semantic"] if expected == "mixed" else [expected]
+
+    layers: dict[str, str] = {
+        "short_term": "",
+        "long_term": "",
+        "episodic": "",
+        "semantic": "",
+    }
+
+    if "short_term" in wanted:
+        messages = case.get("fixture_messages")
+        if not messages:
+            for user in dataset.get("users", []):
+                if user.get("user_id") != case.get("user_id"):
+                    continue
+                for session in user.get("sessions", []):
+                    if session.get("thread_id") == case.get("thread_id"):
+                        messages = session.get("messages", [])
+                        break
+                break
+
+        short_term = ShortTermMemory(
+            strategy="sliding", max_recent_messages=6, pressure_tokens=450
+        )
+        for message in messages or []:
+            short_term.add(message["role"], message["content"])
+        for message in extra_messages:
+            short_term.add(message["role"], message["content"])
+        layers["short_term"] = short_term.render()
+
+    query = case.get("query", "")
+    if "long_term" in wanted:
+        layers["long_term"] = memory.retrieve_long_term(
+            user_id=case["user_id"],
+            thread_id=case["thread_id"],
+            query=query,
+        )
+    if "episodic" in wanted:
+        layers["episodic"] = memory.retrieve_episodic(case["user_id"], query)
+    if "semantic" in wanted:
+        layers["semantic"] = memory.retrieve_semantic(settings.semantic_graph_id, query)
+
+    merged_context, budget = memory.assemble_context(layers)
+    return {"merged_context": merged_context, "layers": layers, "budget": budget}
 
 
 def main() -> None:
     st.set_page_config(page_title="Lab 17 Memory Demo", page_icon="🧠", layout="wide")
     st.markdown(CSS, unsafe_allow_html=True)
-    st.title("🧠 Lab 17 — Memory Agent Demo")
-    st.caption("Load a test case, inspect layered retrieval, then keep chatting as that user.")
+    st.markdown(
+        '<div class="lab-hero"><h1>🧠 Lab 17 · Memory Agent</h1>'
+        '<p>Inspect layered retrieval, token budget and grounded chat — one test case at a time.</p></div>',
+        unsafe_allow_html=True,
+    )
 
     with st.sidebar:
         st.header("⚙️ Setup")
@@ -131,17 +206,27 @@ def main() -> None:
         if not cases:
             st.error("No evaluation cases found.")
             return
+        st.metric("Loaded cases", len(cases), help="Practice + Golden V3 cases")
+        st.caption(f"{sum(case_kind(c) == 'GOLDEN' for c in cases)} golden · "
+                   f"{sum(case_kind(c) == 'PRACTICE' for c in cases)} practice")
         labels = [format_case(c) for c in cases]
         chosen = st.selectbox("Test case", labels)
         case = cases[labels.index(chosen)]
 
+    kind_color = "#d97706" if case_kind(case) == "GOLDEN" else "#2563eb"
+    markers = case.get("must_contain_all") or []
+    marker_html = "".join(
+        f'<span class="lab-marker {"golden-marker" if case_kind(case) == "GOLDEN" else ""}">{marker}</span>'
+        for marker in markers
+    )
     st.markdown(
-        f'<div class="lab-card">{layer_badge(case.get("expected_layer","?"))}'
-        f'<b>{case["id"]}</b><br>'
-        f'<span class="lab-kv"><b>User:</b> {case.get("user_id","-")} &nbsp;·&nbsp; '
+        f'<div class="lab-card"><span class="lab-badge" style="background:{kind_color}">{case_kind(case)}</span>'
+        f'{layer_badge(case.get("expected_layer","?"))}<b style="font-size:1.25rem">{case["id"]}</b>'
+        f'<br><span class="lab-kv"><b>User:</b> {case.get("user_id","-")} &nbsp;·&nbsp; '
         f'<b>Thread:</b> {case.get("thread_id","-")}</span>'
-        f'<p style="margin:.5rem 0 0">{case.get("query","")}</p>'
-        f'<span class="lab-kv">{case.get("description","")}</span></div>',
+        f'<p style="margin:.8rem 0 .25rem;font-size:1.05rem;font-weight:650">{case.get("query","")}</p>'
+        f'<span class="lab-kv">{case.get("description","")}</span>'
+        f'<div><span class="lab-kv"><b>Expected evidence:</b></span>{marker_html or "<span class=\"lab-kv\"> none specified</span>"}</div></div>',
         unsafe_allow_html=True,
     )
 
@@ -150,13 +235,14 @@ def main() -> None:
         st.session_state.chat = []
         st.session_state.pop("last_result", None)
 
-    col_run, _ = st.columns([1, 3])
-    if col_run.button("▶️ Run retrieval on this case", use_container_width=True):
+    col_run, col_hint = st.columns([1, 2])
+    if col_run.button("▶️ Run retrieval", use_container_width=True):
         try:
             memory = StudentMemory(get_zep_client())
             st.session_state.last_result = retrieve_for_case(memory, case, st.session_state.chat)
         except Exception as exc:  # noqa: BLE001
             st.exception(exc)
+    col_hint.caption("Retrieval chạy thật qua Zep Cloud · context được trim theo budget")
 
     result = st.session_state.get("last_result")
     if result:
@@ -164,6 +250,7 @@ def main() -> None:
         active = [k for k, v in result["layers"].items() if v.strip()]
         st.markdown(" ".join(layer_badge(k) for k in active) or "_(nothing retrieved)_",
                     unsafe_allow_html=True)
+        st.success(f"Evidence ready · {len(active)} active layer(s)")
 
         if result.get("budget"):
             cols = st.columns(4)
